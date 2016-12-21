@@ -196,11 +196,14 @@ static int udrm_fb_destroy(struct udrm_device *udev, struct udrm_event_fb *ev)
 
 	DRM_DEBUG("[FB:%u] Destroy\n", ev->fb_id);
 
-	for (prev = &udev->fbs, curr = prev; *curr != NULL; prev = curr, curr = &(*curr)->next) {
+	for (prev = NULL, curr = &udev->fbs; *curr != NULL; prev = curr, curr = &(*curr)->next) {
 		//printf("(*curr)->id=%u, *curr=%p, *curr->next=%p\n", (*curr)->id, *curr, (*curr)->next);
 		if ((*curr)->id == ev->fb_id) {
 			ufb = *curr;
-			*prev = (*curr)->next;
+			if (prev)
+				(*prev)->next = (*curr)->next;
+			else
+				(*curr) = (*curr)->next;
 			break;
 		}
 	}
