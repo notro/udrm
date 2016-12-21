@@ -47,7 +47,7 @@ static void mi0283qt_enable(struct udrm_device *udev)
 		return; //goto out_unlock;
 
 	/* Avoid flicker by skipping setup if the bootloader has done it */
-	if (mipi_dbi_display_is_on(reg)) {
+	if (0 && mipi_dbi_display_is_on(reg)) {
 		udev->prepared = true;
 		return; //goto out_unlock;
 	}
@@ -80,6 +80,7 @@ static void mi0283qt_enable(struct udrm_device *udev)
 	/* Memory Access Control */
 	mipi_dbi_write(reg, MIPI_DCS_SET_PIXEL_FORMAT, 0x55);
 
+	DRM_DEBUG_KMS("Rotation=%u\n", mipi->rotation);
 	switch (mipi->rotation) {
 	default:
 		addr_mode = ILI9341_MADCTL_MV | ILI9341_MADCTL_MY | ILI9341_MADCTL_MX;
@@ -251,6 +252,7 @@ module_spi_driver(mi0283qt_spi_driver);
 static u32 reset_gpios[] = { 0, 23 };
 static u32 dc_gpios[] = { 0, 24 };
 static u32 led_gpios[] = { 0, 18 };
+static u32 rotation = 180;
 
 struct prop rpi_display_props[] = {
 	{
@@ -267,6 +269,11 @@ struct prop rpi_display_props[] = {
 		.name = "led-gpios",
 		.data = led_gpios,
 		.len = sizeof(led_gpios),
+	},
+	{
+		.name = "rotation",
+		.data = &rotation,
+		.len = sizeof(rotation),
 	},
 	{ /* sentinel */ },
 };

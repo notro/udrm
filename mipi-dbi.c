@@ -29,8 +29,10 @@ int mipi_dbi_register(struct device *dev, struct mipi_dbi *mipi, const char *nam
 
 	udev->dev = dev;
 	udev->funcs = funcs;
+	/* FIXME: support 90 and 270 as well */
+	mipi->rotation = rotation;
 
-	//if (mipi->)
+	// FIXME if (mipi->)
 	buf_mode |= UDRM_BUF_MODE_SWAP_BYTES;
 
 	ret = udrm_register(udev, name, mode, mipi_dbi_formats, ARRAY_SIZE(mipi_dbi_formats), buf_mode);
