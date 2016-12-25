@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <linux/dma-buf-dev.h>
 #include <linux/limits.h>
 #include <sys/ioctl.h>
 #include <poll.h>
@@ -19,17 +20,52 @@
 
 int udrm_debug = 0xff;
 
+static int udrm_create_dma_buf(size_t size)
+{
+	struct dma_buf_dev_create create = {
+		.attrs = DMA_BUF_DEV_ATTR_WRITE_COMBINE,
+		.size = size,
+		.flags = O_RDWR,
+	};
+	int fd, ret;
+
+	fd = open("/dev/dma-buf", O_RDWR);
+	if (fd < 0) {
+		pr_err("%s: Failed to open /dev/dma-buf: %s\n", __func__, strerror(errno));
+		return -errno;
+	}
+
+	ret = ioctl(fd, DMA_BUF_DEV_IOCTL_CREATE, &create);
+	if (ret < 0) {
+		pr_err("%s: Failed to create dma-buf: %s\n", __func__, strerror(errno));
+		ret = -errno;
+		goto out;
+	}
+
+	ret = create.fd;
+out:
+	close(fd);
+
+	return ret;
+}
+
 int udrm_register(struct udrm_device *udev, const char *name, const struct drm_mode_modeinfo *mode,
 		  const uint32_t *formats, unsigned int num_formats, u32 buf_mode)
 {
 	struct udrm_dev_create udev_create;
 	char ctrl_fname[PATH_MAX];
-	int ret;
+	int ret, dmabuf_fd;
 
 	udev->name = name;
 	udev->mode = mode;
 
+	/* FIXME */
+	dmabuf_fd = udrm_create_dma_buf(320 * 240 * 2);
+	if (dmabuf_fd < 0)
+		return dmabuf_fd;
+
 	memset(&udev_create, 0, sizeof(udev_create));
+	udev_create.buf_fd = dmabuf_fd;
 	udev_create.mode = *mode;
 	udev_create.formats = (unsigned long)formats;
 	udev_create.num_formats = num_formats;

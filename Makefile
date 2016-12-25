@@ -3,7 +3,7 @@
 XFLAGS    = -Wall -Wshadow -Wstrict-prototypes -Wmissing-prototypes \
             -DDEBUG -DVERBOSE_DEBUG -Wredundant-decls
 
-INCDIRS   = -I. -I/home/pi/work/tinydrm/usr/include -I/home/pi/work/tinydrm/udrm-kernel/include/uapi
+INCDIRS   = -I. -I/home/pi/work/tinydrm/usr/include -I/home/pi/work/tinydrm/udrm-kernel/include/uapi -I/home/pi/work/tinydrm/raspberrypi-linux/include/uapi
 
 LDFLAGS   = -Wl,--no-as-needed -lrt
 

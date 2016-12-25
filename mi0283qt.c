@@ -301,13 +301,18 @@ printf("%s\n", __func__);
 	spi->fname = "/dev/spidev0.0";
 	spi->max_speed_hz = 32000000;
 	spi->bits_per_word = 8;
-	spi->max_dma_len = 320 * 250 * 2 / 5;
+	spi->max_dma_len = 320 * 240 * 2 / 5;
+	spi->max_dma_len = 32768;
+	spi->max_dma_len = 41952;
+	spi->max_dma_len = 65536 - 4096; // master restriction 65535
 
 	ret = spi_add_device(spi);
 	if (ret) {
 		pr_err("spi add error %d\n", ret);
 		return 1;
 	}
+
+	DRM_INFO("spi: max_len=%u, max_dma_len=%u\n", spi->max_len, spi->max_dma_len);
 
 	ret = mi0283qt_probe(spi);
 	if (ret) {
