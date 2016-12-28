@@ -6,11 +6,21 @@
 #include "device.h"
 #include "udrm.h"
 
+struct spi_driver {
+	int fd;
+	const char *name;
+	const char *compatible;
+};
+
+int spi_register_driver(struct spi_driver *sdrv);
+char *spi_driver_event_loop(struct spi_driver *sdrv);
+
 struct spi_device {
 	struct device		dev;
 	char			*fname;
 	int			fd;
 	u32			max_speed_hz;
+	u8			bus_num;
 	u8			chip_select;
 	u8			bits_per_word;
 
@@ -24,6 +34,7 @@ struct spi_device {
 };
 
 
+struct spi_device *spi_alloc_device(const char *spidev_name);
 int spi_add_device(struct spi_device *spi);
 void spi_unregister_device(struct spi_device *spi);
 

@@ -9,11 +9,144 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-
+#include <poll.h>
 
 #include "udrm.h"
 #include "spi.h"
 #include "regmap.h"
+
+int spi_register_driver(struct spi_driver *sdrv)
+{
+	char buf[128 + 128];
+	const char *str;
+	int fd, ret;
+
+	pr_debug("%s\n", __func__);
+
+	if (strlen(sdrv->name) > 127)
+		return -EINVAL;
+
+	if (sdrv->compatible && strlen(sdrv->compatible) > 127)
+		return -EINVAL;
+
+	fd = open("/dev/spidev", O_RDWR);
+	if (fd < 0) {
+		printf("%s: Failed to open /dev/spidev: %s\n", __func__, strerror(errno));
+		return -errno;
+	}
+
+	if (sdrv->compatible) {
+		str = buf;
+		ret = snprintf(buf, sizeof(buf), "%s\n%s", sdrv->name, sdrv->compatible);
+		if (ret < 0)
+			goto err_close;
+	} else {
+		str = sdrv->name;
+	}
+
+	ret = write(fd, str, strlen(str) + 1);
+	if (ret < 0) {
+		printf("%s: Failed to write /dev/spidev: %s\n", __func__, strerror(errno));
+		ret = -errno;
+		goto err_close;
+	}
+
+	sdrv->fd = fd;
+
+	return 0;
+
+err_close:
+	close(fd);
+
+	return ret;
+}
+
+char *spi_driver_event_loop(struct spi_driver *sdrv)
+{
+	char new_device[32];
+	struct pollfd pfd;
+	char *device;
+	pid_t pid;
+	int ret;
+
+	pfd.fd = sdrv->fd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+
+	while (!(pfd.revents & (POLLERR | POLLHUP | POLLNVAL))) {
+		ret = read(sdrv->fd, new_device, sizeof(new_device));
+		if (ret < 0) {
+			pr_err("%s: Failed to read from /dev/spidev: %s\n", __func__, strerror(errno));
+			device = ERR_PTR(-errno);
+			goto out;
+		}
+
+		printf("New device: %d  '%s'\n", strlen(new_device), new_device);
+
+		pid = fork();
+		if (!pid) {
+			pr_info("%s: child pid=%d\n", __func__, getpid());
+			device = strdup(new_device);
+			if (!device)
+				device = ERR_PTR(-ENOMEM);
+			goto out;
+		}
+
+		poll(&pfd, 1, -1);
+	}
+
+out:
+
+	return device;
+}
+
+struct spi_device *spi_alloc_device(const char *spidev_name)
+{
+	struct spi_device *spi;
+	unsigned int busnum, cs;
+	char *name, *fname;
+	int ret;
+
+	spi = calloc(1, sizeof(*spi));
+	name = malloc(32);
+	fname = malloc(32);
+	if (!spi || !name || !fname) {
+		ret = -ENOMEM;
+		goto err_free;
+	}
+
+	ret = sscanf(spidev_name, "spidev%u.%u", &busnum, &cs);
+	if (ret != 2) {
+		ret = errno ? -errno : -EINVAL;
+		goto err_free;
+	}
+
+	ret = snprintf(name, 32, "spi%u.%u", busnum, cs);
+	if (ret < 0 || ret > 31) {
+		ret = -EINVAL;
+		goto err_free;
+	}
+
+	ret = snprintf(fname, 32, "/dev/%s", spidev_name);
+	if (ret < 0 || ret > 31) {
+		ret = -EINVAL;
+		goto err_free;
+	}
+
+	spi->bus_num = busnum;
+	spi->chip_select = cs;
+	spi->dev.name = name;
+	spi->fname = fname;
+
+	return spi;
+
+err_free:
+	free(fname);
+	free(name);
+	free(spi);
+
+	return ERR_PTR(ret);
+}
 
 int spi_add_device(struct spi_device *spi)
 {

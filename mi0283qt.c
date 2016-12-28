@@ -278,27 +278,49 @@ struct prop rpi_display_props[] = {
 	{ /* sentinel */ },
 };
 
+static struct spi_driver sdrv = {
+	.name = "mi0283qt",
+	.compatible = "mi,mi0283qt",
+};
 
 int main(int argc, char const *argv[])
 {
 	struct udrm_device *udev;
 	struct spi_device *spi;
+	const char *device;
 	int ret;
+
+	if (argc > 2) {
+		pr_err("Too many arguments\n");
+		exit(1);
+	}
+
+	if (argc == 1) {
+		ret = spi_register_driver(&sdrv);
+
+		printf("SPI driver registered\n");
+		device = spi_driver_event_loop(&sdrv);
+		if (IS_ERR(device)) {
+			pr_err("Error initiating device %d\n", PTR_ERR(device));
+			exit(1);
+		}
+	} else {
+		device = argv[1];
+	}
 
 printk_level = 6;
 udrm_debug = 0;
 
-printf("%s\n", __func__);
-	spi = calloc(1, sizeof(*spi));
-	if (!spi) {
-		pr_err("alloc error\n");
-		return 1;
+	spi = spi_alloc_device(device);
+	if (IS_ERR(spi)) {
+		pr_err("Failed to allocate spidev '%s'\n", device);
+		exit(1);
 	}
+
+	pr_info("bus=%u, cs=%u, fname=%s\n", spi->bus_num, spi->chip_select, spi->fname);
 
 	spi->dev.props = rpi_display_props;
 
-	spi->dev.name = "spi0.0";
-	spi->fname = "/dev/spidev0.0";
 	spi->max_speed_hz = 32000000;
 	spi->bits_per_word = 8;
 	spi->max_dma_len = 320 * 240 * 2 / 5;
