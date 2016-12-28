@@ -1,6 +1,8 @@
 #ifndef _DEVICE_H
 #define _DEVICE_H
 
+#include <limits.h>
+
 #include "base.h"
 
 struct prop {
@@ -10,10 +12,15 @@ struct prop {
 };
 
 struct device {
-	char *name;
+	char name[32];
+	char sysfs[PATH_MAX];
 	struct prop *props;
 	void *driver_data;
 };
+
+int dev_set_name(struct device *dev, const char *fmt, ...);
+int dev_set_sysfs(struct device *dev, const char *fmt, ...);
+int device_add(struct device *dev);
 
 static inline const char *dev_name(const struct device *dev)
 {

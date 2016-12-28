@@ -104,13 +104,12 @@ struct spi_device *spi_alloc_device(const char *spidev_name)
 {
 	struct spi_device *spi;
 	unsigned int busnum, cs;
-	char *name, *fname;
+	char *fname;
 	int ret;
 
 	spi = calloc(1, sizeof(*spi));
-	name = malloc(32);
 	fname = malloc(32);
-	if (!spi || !name || !fname) {
+	if (!spi || !fname) {
 		ret = -ENOMEM;
 		goto err_free;
 	}
@@ -118,12 +117,6 @@ struct spi_device *spi_alloc_device(const char *spidev_name)
 	ret = sscanf(spidev_name, "spidev%u.%u", &busnum, &cs);
 	if (ret != 2) {
 		ret = errno ? -errno : -EINVAL;
-		goto err_free;
-	}
-
-	ret = snprintf(name, 32, "spi%u.%u", busnum, cs);
-	if (ret < 0 || ret > 31) {
-		ret = -EINVAL;
 		goto err_free;
 	}
 
@@ -135,14 +128,17 @@ struct spi_device *spi_alloc_device(const char *spidev_name)
 
 	spi->bus_num = busnum;
 	spi->chip_select = cs;
-	spi->dev.name = name;
 	spi->fname = fname;
+	dev_set_name(&spi->dev, "spi%u.%u", busnum, cs);
+	dev_set_sysfs(&spi->dev, "/sys/bus/spi/devices/spi%u.%u", busnum, cs);
+	ret = device_add(&spi->dev);
+	if (ret)
+		goto err_free;
 
 	return spi;
 
 err_free:
 	free(fname);
-	free(name);
 	free(spi);
 
 	return ERR_PTR(ret);

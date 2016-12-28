@@ -249,35 +249,6 @@ static struct spi_driver mi0283qt_spi_driver = {
 module_spi_driver(mi0283qt_spi_driver);
 #endif
 
-static u32 reset_gpios[] = { 0, 23 };
-static u32 dc_gpios[] = { 0, 24 };
-static u32 led_gpios[] = { 0, 18 };
-static u32 rotation = 180;
-
-struct prop rpi_display_props[] = {
-	{
-		.name = "reset-gpios",
-		.data = reset_gpios,
-		.len = sizeof(reset_gpios),
-	},
-	{
-		.name = "dc-gpios",
-		.data = dc_gpios,
-		.len = sizeof(dc_gpios),
-	},
-	{
-		.name = "led-gpios",
-		.data = led_gpios,
-		.len = sizeof(led_gpios),
-	},
-	{
-		.name = "rotation",
-		.data = &rotation,
-		.len = sizeof(rotation),
-	},
-	{ /* sentinel */ },
-};
-
 static struct spi_driver sdrv = {
 	.name = "mi0283qt",
 	.compatible = "mi,mi0283qt",
@@ -318,8 +289,6 @@ udrm_debug = 0;
 	}
 
 	pr_info("bus=%u, cs=%u, fname=%s\n", spi->bus_num, spi->chip_select, spi->fname);
-
-	spi->dev.props = rpi_display_props;
 
 	spi->max_speed_hz = 32000000;
 	spi->bits_per_word = 8;
