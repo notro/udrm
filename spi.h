@@ -6,14 +6,25 @@
 #include "device.h"
 #include "udrm.h"
 
+struct spi_device;
+
 struct spi_driver {
-	int fd;
-	const char *name;
-	const char *compatible;
+	int		fd;
+	const char	*name;
+	const char	*compatible;
+	int		(*probe)(struct spi_device *spi);
+	int		(*remove)(struct spi_device *spi);
 };
 
 int spi_register_driver(struct spi_driver *sdrv);
 char *spi_driver_event_loop(struct spi_driver *sdrv);
+int module_spi_driver_main(int argc, char const *argv[], struct spi_driver *sdrv);
+
+#define module_spi_driver(__spi_driver)					\
+int main(int argc, char const *argv[])					\
+{									\
+	return module_spi_driver_main(argc, argv, &(__spi_driver));	\
+}
 
 struct spi_device {
 	struct device		dev;

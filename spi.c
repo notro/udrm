@@ -100,6 +100,67 @@ out:
 	return device;
 }
 
+int module_spi_driver_main(int argc, char const *argv[], struct spi_driver *sdrv)
+{
+	struct udrm_device *udev;
+	struct spi_device *spi;
+	const char *device;
+	int ret;
+
+	if (argc > 2) {
+		pr_err("Too many arguments\n");
+		exit(1);
+	}
+
+	if (argc == 1) {
+		ret = spi_register_driver(sdrv);
+
+		printf("SPI driver registered\n");
+		device = spi_driver_event_loop(sdrv);
+		if (IS_ERR(device)) {
+			pr_err("Error initiating device %d\n", PTR_ERR(device));
+			exit(1);
+		}
+	} else {
+		device = argv[1];
+	}
+
+	spi = spi_alloc_device(device);
+	if (IS_ERR(spi)) {
+		pr_err("Failed to allocate spidev '%s'\n", device);
+		exit(1);
+	}
+
+	pr_info("bus=%u, cs=%u, fname=%s\n", spi->bus_num, spi->chip_select, spi->fname);
+
+	ret = spi_add_device(spi);
+	if (ret) {
+		pr_err("spi add error %d\n", ret);
+		return 1;
+	}
+
+	DRM_INFO("spi: max_len=%u, max_dma_len=%u\n", spi->max_len, spi->max_dma_len);
+
+	ret = sdrv->probe(spi);
+	if (ret) {
+		pr_err("probe error %d\n", ret);
+		return 1;
+	}
+
+	udev = spi_get_drvdata(spi);
+
+	udrm_event_loop(udev);
+
+
+	sdrv->remove(spi);
+
+	spi_unregister_device(spi);
+	free(spi);
+
+printf("%s: exit\n", __func__);
+	return 0;
+}
+
 struct spi_device *spi_alloc_device(const char *spidev_name)
 {
 	struct spi_device *spi;

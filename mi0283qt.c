@@ -178,6 +178,16 @@ static int mi0283qt_probe(struct spi_device *spi)
 
 printf("%s\n", __func__);
 
+printk_level = 6;
+udrm_debug = 0;
+
+	spi->max_speed_hz = 32000000;
+	spi->bits_per_word = 8;
+	spi->max_dma_len = 320 * 240 * 2 / 5;
+	spi->max_dma_len = 32768;
+	spi->max_dma_len = 41952;
+	spi->max_dma_len = 65536 - 4096; // master restriction 65535
+
 	mipi = calloc(1, sizeof(*mipi));
 	if (!mipi)
 		return -ENOMEM;
@@ -249,78 +259,10 @@ static struct spi_driver mi0283qt_spi_driver = {
 module_spi_driver(mi0283qt_spi_driver);
 #endif
 
-static struct spi_driver sdrv = {
+static struct spi_driver mi0283qt_drv = {
 	.name = "mi0283qt",
 	.compatible = "mi,mi0283qt",
+	.probe = mi0283qt_probe,
+	.remove = mi0283qt_remove,
 };
-
-int main(int argc, char const *argv[])
-{
-	struct udrm_device *udev;
-	struct spi_device *spi;
-	const char *device;
-	int ret;
-
-	if (argc > 2) {
-		pr_err("Too many arguments\n");
-		exit(1);
-	}
-
-	if (argc == 1) {
-		ret = spi_register_driver(&sdrv);
-
-		printf("SPI driver registered\n");
-		device = spi_driver_event_loop(&sdrv);
-		if (IS_ERR(device)) {
-			pr_err("Error initiating device %d\n", PTR_ERR(device));
-			exit(1);
-		}
-	} else {
-		device = argv[1];
-	}
-
-printk_level = 6;
-udrm_debug = 0;
-
-	spi = spi_alloc_device(device);
-	if (IS_ERR(spi)) {
-		pr_err("Failed to allocate spidev '%s'\n", device);
-		exit(1);
-	}
-
-	pr_info("bus=%u, cs=%u, fname=%s\n", spi->bus_num, spi->chip_select, spi->fname);
-
-	spi->max_speed_hz = 32000000;
-	spi->bits_per_word = 8;
-	spi->max_dma_len = 320 * 240 * 2 / 5;
-	spi->max_dma_len = 32768;
-	spi->max_dma_len = 41952;
-	spi->max_dma_len = 65536 - 4096; // master restriction 65535
-
-	ret = spi_add_device(spi);
-	if (ret) {
-		pr_err("spi add error %d\n", ret);
-		return 1;
-	}
-
-	DRM_INFO("spi: max_len=%u, max_dma_len=%u\n", spi->max_len, spi->max_dma_len);
-
-	ret = mi0283qt_probe(spi);
-	if (ret) {
-		pr_err("probe error %d\n", ret);
-		return 1;
-	}
-
-	udev = spi_get_drvdata(spi);
-
-	udrm_event_loop(udev);
-
-
-	mi0283qt_remove(spi);
-
-	spi_unregister_device(spi);
-	free(spi);
-
-printf("%s: exit\n", __func__);
-	return 0;
-}
+module_spi_driver(mi0283qt_drv);
