@@ -1,0 +1,4 @@
+# /etc/udev/rules.d/90-udrm.rules
+
+ACTION=="add", ENV{MODALIAS}=="spi:mi0283qt", TAG+="systemd", ENV{SYSTEMD_WANTS}="mi0283qt.service"
+

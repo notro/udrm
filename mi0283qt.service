@@ -1,0 +1,8 @@
+# /etc/systemd/system/mi0283qt.service
+
+[Unit]
+Description=MI0283QT display driver
+
+[Service]
+ExecStartPre=/sbin/modprobe udrm
+ExecStart=/home/pi/mi0283qt
