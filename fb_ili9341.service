@@ -1,0 +1,9 @@
+# /etc/systemd/system/fb_ili9341.service
+
+[Unit]
+Description=ILI9341 display driver
+
+[Service]
+ExecStartPre=/sbin/modprobe udrm
+ExecStart=/home/pi/fb_ili9341
+

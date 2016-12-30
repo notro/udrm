@@ -186,3 +186,8 @@ int device_property_read_u32_array(struct device *dev, const char *propname, u32
 
 	return 0;
 }
+
+int device_property_read_string(struct device *dev, const char *propname, const char **val)
+{
+	return -EOPNOTSUPP;
+}

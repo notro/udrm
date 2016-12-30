@@ -1,4 +1,5 @@
 # /etc/udev/rules.d/90-udrm.rules
 
 ACTION=="add", ENV{MODALIAS}=="spi:mi0283qt", TAG+="systemd", ENV{SYSTEMD_WANTS}="mi0283qt.service"
+ACTION=="add", ENV{MODALIAS}=="spi:ili9341", TAG+="systemd", ENV{SYSTEMD_WANTS}="fb_ili9341.service"
 

@@ -40,6 +40,12 @@ static inline void dev_set_drvdata(struct device *dev, void *data)
 
 struct prop *device_find_property(struct device *dev, const char *propname);
 int device_property_read_u32_array(struct device *dev, const char *propname, u32 *val, size_t nval);
+int device_property_read_string(struct device *dev, const char *propname, const char **val);
+
+static inline bool device_property_present(struct device *dev, const char *propname)
+{
+	return device_find_property(dev, propname);
+}
 
 static inline bool device_property_read_bool(struct device *dev, const char *propname)
 {
@@ -51,14 +57,17 @@ static inline int device_property_read_u32(struct device *dev, const char *propn
 	return device_property_read_u32_array(dev, propname, val, 1);
 }
 
-#define dev_dbg(dev, fmt, ...)			\
-        printk(KERN_DEBUG, fmt, ##__VA_ARGS__)
-
 
 #define dev_err(dev, fmt, ...)			\
-        printk(KERN_ERR, fmt, ##__VA_ARGS__)
+	printk(KERN_ERR, fmt, ##__VA_ARGS__)
 
 #define dev_warn(dev, fmt, ...)			\
-        printk(KERN_WARNING, fmt, ##__VA_ARGS__)
+	printk(KERN_WARNING, fmt, ##__VA_ARGS__)
+
+#define dev_info(dev, fmt, ...)			\
+	printk(KERN_INFO, fmt, ##__VA_ARGS__)
+
+#define dev_dbg(dev, fmt, ...)			\
+	printk(KERN_DEBUG, fmt, ##__VA_ARGS__)
 
 #endif
