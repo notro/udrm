@@ -88,6 +88,9 @@ int printk(int level, const char *fmt, ...);
 	(((__u16)(x) & (__u16)0x00ffU) << 8) |  \
 	(((__u16)(x) & (__u16)0xff00U) >> 8)))
 
+#define swap(a, b) \
+	do { typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
+
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 

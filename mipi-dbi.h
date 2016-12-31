@@ -46,7 +46,7 @@ mipi_dbi_from_tinydrm(struct udrm_device *udev)
 }
 
 int mipi_dbi_register(struct device *dev, struct mipi_dbi *mipi, const char *name, const struct udrm_funcs *funcs,
-		      const struct drm_mode_modeinfo *mode, unsigned int rotation);
+		      struct drm_mode_modeinfo *mode, unsigned int rotation);
 int mipi_dbi_dirtyfb(struct udrm_framebuffer *ufb, unsigned int flags, unsigned int color, struct drm_clip_rect *clips, unsigned int num_clips);
 void mipi_dbi_disable(struct udrm_device *udev);
 void mipi_dbi_hw_reset(struct mipi_dbi *mipi);

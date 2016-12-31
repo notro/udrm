@@ -223,30 +223,22 @@ static const struct udrm_funcs fbtft_pipe_funcs = {
 	.dirtyfb = mipi_dbi_dirtyfb,
 };
 
-static void fbtft_set_mode(struct drm_mode_modeinfo *mode, unsigned int width, unsigned int height)
-{
-	struct drm_mode_modeinfo fbtft_mode = {
-		UDRM_MODE(width, height, 0, 0),
-	};
-
-	*mode = fbtft_mode;
-}
-
 int fbtft_mipi_probe(const char *name, struct fbtft_display *display, struct spi_device *spi)
 {
 	struct device *dev = &spi->dev;
 	struct fb_info *info;
 	struct fbtft_par *par;
 	int ret;
-	unsigned int width;
-	unsigned int height;
-	u32 rotate;
 	char *gamma = display->gamma;
 	unsigned long *gamma_curves = NULL;
 	struct udrm_device *udev;
 	struct mipi_dbi *mipi;
 	struct gpio_desc *dc;
-	struct drm_mode_modeinfo fbtft_mode;
+	struct drm_mode_modeinfo fbtft_mode = {
+		UDRM_MODE(fbtft_of_value(dev, "width") ? : display->width,
+			  fbtft_of_value(dev, "height") ? : display->height,
+			  0, 0),
+	};
 
 pr_info("%s\n", __func__);
 
@@ -321,33 +313,14 @@ udrm_debug = 0;
 			return -EINVAL;
 	}
 
-	rotate = fbtft_of_value(dev, "rotate");
-	switch (rotate) {
-	case 90:
-	case 270:
-		width =  display->height;
-		height = display->width;
-		break;
-	default:
-		width =  display->width;
-		height = display->height;
-	}
-
 	info->device = dev;
-	info->var.rotate =         rotate;
-	info->var.xres =           fbtft_of_value(dev, "width") ? : width;
-	info->var.yres =           fbtft_of_value(dev, "height") ? : height;
-	info->var.xres_virtual =   info->var.xres;
-	info->var.yres_virtual =   info->var.yres;
+	info->var.rotate = fbtft_of_value(dev, "rotate");
 	info->var.bits_per_pixel = fbtft_of_value(dev, "bpp") ? : display->bpp;
 
 	if (device_property_present(dev, "led-gpios"))
 		display->backlight = 1;
 //	if (device_property_present(dev, "init", NULL))
 //		pdata->display.fbtftops.init_display = fbtft_init_display_dt;
-
-	fbtft_set_mode(&fbtft_mode, width, height);
-
 
 
 
@@ -385,10 +358,16 @@ spi->max_dma_len = 65536 - 4096; // master restriction 65535
 	if (ret)
 		return ret;
 
+	info->var.xres = fbtft_mode.hdisplay;
+	info->var.yres = fbtft_mode.vdisplay;
+	info->var.xres_virtual = info->var.xres;
+	info->var.yres_virtual = info->var.yres;
+
 	udev = &mipi->udev;
 	spi_set_drvdata(spi, udev);
 
-	DRM_INFO("Initialized %s:%s @%uMHz on minor %d\n", udev->name, dev_name(dev), spi->max_speed_hz / 1000000, udev->index);
+	DRM_INFO("Initialized %ux%u %s:%s @%uMHz on minor %d\n", info->var.xres, info->var.yres, udev->name, dev_name(dev),
+		 spi->max_speed_hz / 1000000, udev->index);
 
 	return 0;
 }

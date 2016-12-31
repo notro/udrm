@@ -21,7 +21,7 @@ static const uint32_t mipi_dbi_formats[] = {
 };
 
 int mipi_dbi_register(struct device *dev, struct mipi_dbi *mipi, const char *name, const struct udrm_funcs *funcs,
-		      const struct drm_mode_modeinfo *mode, unsigned int rotation)
+		      struct drm_mode_modeinfo *mode, unsigned int rotation)
 {
 	struct udrm_device *udev = &mipi->udev;
 	u32 buf_mode = UDRM_BUF_MODE_EMUL_XRGB8888;
@@ -31,6 +31,12 @@ int mipi_dbi_register(struct device *dev, struct mipi_dbi *mipi, const char *nam
 	udev->funcs = funcs;
 	/* FIXME: support 90 and 270 as well */
 	mipi->rotation = rotation;
+	if (rotation == 90 || rotation == 270) {
+		swap(mode->hdisplay, mode->vdisplay);
+		swap(mode->hsync_start, mode->vsync_start);
+		swap(mode->hsync_end, mode->vsync_end);
+		swap(mode->htotal, mode->vtotal);
+	}
 
 	// FIXME if (mipi->)
 	buf_mode |= UDRM_BUF_MODE_SWAP_BYTES;
