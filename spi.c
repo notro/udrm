@@ -151,6 +151,8 @@ int module_spi_driver_main(int argc, char const *argv[], struct spi_driver *sdrv
 
 	udrm_event_loop(udev);
 
+	/* close this first to signal that we're going away */
+	close(udev->fd);
 
 	sdrv->remove(spi);
 

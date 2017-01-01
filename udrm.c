@@ -16,6 +16,8 @@
 // munmap
 #include <sys/mman.h>
 
+#include <signal.h>
+
 #include "udrm.h"
 
 int udrm_debug = 0xff;
@@ -282,8 +284,6 @@ static int udrm_event(struct udrm_device *udev, struct udrm_event *ev)
 {
 	int ret;
 
-//	usleep(100000);
-
 	switch (ev->type) {
 	case UDRM_EVENT_PIPE_ENABLE:
 		ret = udrm_enable(udev, ev);
@@ -306,17 +306,28 @@ static int udrm_event(struct udrm_device *udev, struct udrm_event *ev)
 		break;
 	}
 
-//	usleep(100000);
-
 	return ret;
 }
 
+static volatile sig_atomic_t udrm_shutdown = 0;
+
+static void udrm_sigterm(int signum)
+{
+	udrm_shutdown = 1;
+}
+
+static struct sigaction udrm_sigaction = {
+	.sa_handler = udrm_sigterm,
+};
 
 int udrm_event_loop(struct udrm_device *udev)
 {
 	struct udrm_event *ev;
 	struct pollfd pfd;
 	int ret;
+
+	sigaction(SIGTERM, &udrm_sigaction, NULL);
+	sigaction(SIGINT, &udrm_sigaction, NULL);
 
 	ev = malloc(1024);
 	if (!ev) {
@@ -332,6 +343,10 @@ int udrm_event_loop(struct udrm_device *udev)
 		int event_ret;
 
 		ret = read(udev->fd, ev, 1024);
+		if (udrm_shutdown) {
+			ret = 0;
+			break;
+		}
 		if (ret < 0) {
 			pr_err("%s: Failed to read from /dev/udrm: %s\n", __func__, strerror(errno));
 			ret = -errno;
@@ -341,6 +356,10 @@ int udrm_event_loop(struct udrm_device *udev)
 		event_ret = udrm_event(udev, ev);
 
 		ret = write(udev->fd, &event_ret, sizeof(int));
+		if (udrm_shutdown) {
+			ret = 0;
+			break;
+		}
 		if (ret < 0) {
 			pr_err("%s: Failed to write to /dev/udrm: %s\n", __func__, strerror(errno));
 			ret = -errno;
