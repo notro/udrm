@@ -18,6 +18,7 @@
 
 #include <signal.h>
 
+#include "device.h"
 #include "udrm.h"
 
 int udrm_debug = 0xff;
@@ -311,13 +312,13 @@ static int udrm_event(struct udrm_device *udev, struct udrm_event *ev)
 
 static volatile sig_atomic_t udrm_shutdown = 0;
 
-static void udrm_sigterm(int signum)
+static void udrm_sighandler(int signum)
 {
 	udrm_shutdown = 1;
 }
 
 static struct sigaction udrm_sigaction = {
-	.sa_handler = udrm_sigterm,
+	.sa_handler = udrm_sighandler,
 };
 
 int udrm_event_loop(struct udrm_device *udev)
@@ -341,6 +342,12 @@ int udrm_event_loop(struct udrm_device *udev)
 
 	while (!(pfd.revents & (POLLERR | POLLHUP | POLLNVAL))) {
 		int event_ret;
+
+		if (udev->dev && udev->dev->shutdown) {
+			pr_err("Device shutdown\n");
+			ret = -ESHUTDOWN;
+			goto out;
+		}
 
 		ret = read(udev->fd, ev, 1024);
 		if (udrm_shutdown) {

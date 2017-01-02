@@ -16,6 +16,7 @@ struct device {
 	char sysfs[PATH_MAX];
 	struct prop *props;
 	void *driver_data;
+	bool shutdown;
 };
 
 int dev_set_name(struct device *dev, const char *fmt, ...);

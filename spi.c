@@ -86,6 +86,8 @@ char *spi_driver_event_loop(struct spi_driver *sdrv)
 		pid = fork();
 		if (!pid) {
 			pr_info("%s: child pid=%d\n", __func__, getpid());
+			/* don't let this instance keep the driver alive */
+			close(sdrv->fd);
 			device = strdup(new_device);
 			if (!device)
 				device = ERR_PTR(-ENOMEM);
@@ -598,7 +600,7 @@ int spi_transfer(struct spi_device *spi, u32 speed_hz, struct spi_ioc_transfer *
 
 		spi_message_dbg(spi, msg, num_msgs);
 
-		ret = ioctl(spi->fd, SPI_IOC_MESSAGE(num_msgs), msg);
+		ret = spi_sync(spi, msg, num_msgs);
 		if (ret < 0)
 			return -errno;
 
@@ -614,8 +616,11 @@ int spi_sync(struct spi_device *spi, struct spi_ioc_transfer *msg, unsigned int 
 	int ret;
 
 	ret = ioctl(spi->fd, SPI_IOC_MESSAGE(num_msgs), msg);
-	if (ret < 0)
+	if (ret < 0) {
+		if (errno == ESHUTDOWN)
+			spi->dev.shutdown = true;
 		return -errno;
+	}
 
 	return 0;
 }
